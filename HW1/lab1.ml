@@ -92,7 +92,35 @@ Replace with 'then' clause
 *)
 
 (* Question 2 *)
-(* TODO *)
+let new_if predicate then_clause else_clause =
+    match predicate with
+      true -> then_clause
+    | false -> else_clause
+
+let square x = x *. x
+let average x y = (x +. y) /. 2.0
+
+let improve guess x = average guess (x /. guess)
+let is_good_enough guess x =
+    abs_float (square guess -. x) < 0.00001
+
+(*
+let rec sqrt_iter guess x =
+    new_if (is_good_enough guess x)
+        guess
+        (sqrt_iter (improve guess x) x)
+*)
+let rec sqrt_iter guess x =
+    if (is_good_enough guess x)
+        then guess
+        else (sqrt_iter (improve guess x) x)
+
+(*
+When using this method to compute square roots, Alyssa will get a stack
+overflow error.
+The precise error message from Ocaml reads:
+Stack overflow during evaluation (looping recusion?).
+*)
 
 (* Question 3 *)
 (*
@@ -292,18 +320,21 @@ and is_even x =
 let rec f_rec n =
     if n < 3
     then n
-    else f (n - 1) + 2 * f (n - 2) + 3 * f (n - 3)
+    else f_rec (n - 1) + 2 * f_rec (n - 2) + 3 * f_rec (n - 3)
 
-(* Helper function used to define f_iter iteratively. *)
-let rec f_help a b c max =
-    if max = (a + 1)
+(*
+ * Helper function used to define f_iter iteratively.
+ * Start with f(3) = f(2) + 2f(1) + 3f(0) and compute backwards to f(n).
+ *)
+let rec f_help max curr a b c =
+    if max = curr
     then a + 2 * b + 3 * c
-    else f_help (a + 2 * b + 3 * c) a b max
+    else f_help max (curr + 1) (a + 2 * b + 3 * c) a b
 (* Iterative definition of function f(n). *)
 let f_iter n =
     if n < 3
     then n
-    else f_help 2 2 0 n
+    else f_help n 3 2 1 0
 
 (* Question 4 *)
 (* Takes two integer arguments corresponding to row number and row index
@@ -311,5 +342,8 @@ let f_iter n =
  *)
 let rec pascal_coefficient n i =
     match n, i with
-        | 1, 1 -> 1
-        | _, _ -> 2
+          n, i when i < 1 || i > n -> failwith "invalid arguments"
+        | _, 1 -> 1
+        | _, t when t = n -> 1
+        | _, _ -> pascal_coefficient (n - 1) (i - 1)
+            + pascal_coefficient (n - 1) i
