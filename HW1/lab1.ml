@@ -92,34 +92,18 @@ Replace with 'then' clause
 *)
 
 (* Question 2 *)
-let new_if predicate then_clause else_clause =
-    match predicate with
-      true -> then_clause
-    | false -> else_clause
-
-let square x = x *. x
-let average x y = (x +. y) /. 2.0
-
-let improve guess x = average guess (x /. guess)
-let is_good_enough guess x =
-    abs_float (square guess -. x) < 0.00001
-
 (*
-let rec sqrt_iter guess x =
-    new_if (is_good_enough guess x)
-        guess
-        (sqrt_iter (improve guess x) x)
-*)
-let rec sqrt_iter guess x =
-    if (is_good_enough guess x)
-        then guess
-        else (sqrt_iter (improve guess x) x)
-
-(*
-When using this method to compute square roots, Alyssa will get a stack
+When running this method to compute square roots, Alyssa will get a stack
 overflow error.
 The precise error message from Ocaml reads:
 Stack overflow during evaluation (looping recusion?).
+
+Changing the new_if method to the primitive if makes sqrt_iter
+work.
+Because new_if is a function, Ocaml will evaluate its arguments,
+including the recursive "else_clause", before reaching the pattern
+matching portion. This means sqrt_iter will recursively call itself
+in a loop, without stopping, because of the new_if function.
 *)
 
 (* Question 3 *)
