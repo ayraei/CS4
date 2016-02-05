@@ -79,7 +79,7 @@ let all_tests = "all" >:::
 (*** Problem A.6: no tests ***)
 
 (*** Problem A.7: no tests ***)
-
+(*
 (*** Problem B.1 ***)
   "last_sublist" >:: (fun c ->
     assert_raises (Invalid_argument "last_sublist: empty list") (fun () -> last_sublist []);
@@ -149,8 +149,7 @@ let all_tests = "all" >:::
       (List [Value 10; List [Value 20; List [Value 30; Value 40]; Value 50]; Value 60])) 
       (List [Value 60; List [Value 50; List [Value 40; Value 30]; Value 20]; Value 10])
   );
-
+*)
 ]
 
 let _ = run_test_tt_main all_tests
-
