@@ -112,7 +112,7 @@ val prefix_sum : int list -> int list
 val deep_reverse : 'a list list -> 'a list list
 
 (* B.7 *)
-(*
+
 type 'a nested_list = Value of 'a | List of 'a nested_list list
 val deep_reverse_nested : 'a nested_list -> 'a nested_list
-*)
+

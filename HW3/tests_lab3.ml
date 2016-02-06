@@ -121,7 +121,7 @@ let all_tests = "all" >:::
   );
 
 (*** Problem B.6 ***)
-(*
+
   "deep_reverse" >:: (fun c ->
     assert_equal (deep_reverse []) [];
     assert_equal (deep_reverse [[1; 2]; [3; 4]]) [[4; 3]; [2; 1]];
@@ -149,7 +149,7 @@ let all_tests = "all" >:::
       (List [Value 10; List [Value 20; List [Value 30; Value 40]; Value 50]; Value 60])) 
       (List [Value 60; List [Value 50; List [Value 40; Value 30]; Value 20]; Value 10])
   );
-*)
+
 ]
 
 let _ = run_test_tt_main all_tests
