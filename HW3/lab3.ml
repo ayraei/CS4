@@ -1,3 +1,7 @@
+(* I had originally turned in everything in PART A on time, but I am
+ * resubmitting with the best attempt at the full assignment a day late.
+ *)
+
 (* PART A *)
 
 (* Question 1 *)
@@ -143,9 +147,6 @@ let make_pair x y = fun m -> m x y
 let first z = z (fun x y -> x)
 let second z = z (fun x y -> y)
 
-(* Evaluation *)
-(* [TODO] *)
-
 (* Question 4 *)
 
 (* Takes two int arguments x, y and returns x^y *)
@@ -270,7 +271,9 @@ let nine = fun s -> fun z -> s (s (s (s (s (s (s (s (s (z)))))))))
 let ten = fun s -> fun z -> s (s (s (s (s (s (s (s (s (s (z))))))))))
 
 (* Church numeral addition *)
+(*
 let add m n s z = fun m -> fun n -> fun s -> fun z -> (m s) ((n s) z)
+*)
 
 (* Converts a Church numeral to integer *)
 (* ?? *)
@@ -281,22 +284,110 @@ let add m n s z = fun m -> fun n -> fun s -> fun z -> (m s) ((n s) z)
 (* PART B *)
 
 (* Question 1 *)
-(* [TODO] *)
+
+(* Takes a list argument and returns a list of only the last element *)
+let rec last_sublist = function
+  | [] -> invalid_arg "last_sublist: empty list"
+  | [a'] -> [a']
+  | _ :: t -> last_sublist t
 
 (* Question 2 *)
-(* [TODO] *)
+
+(* Reverses a list *)
+let reverse l =
+    let rec rev_iter fwd rev =
+      match fwd with
+        | [] -> rev
+        | h :: t -> rev_iter t (h :: rev)
+    in
+      rev_iter l []
 
 (* Question 3 *)
-(* [TODO] *)
+
+(* Takes a list of integers and returns a list of their squares *)
+let rec square_list = function
+  | [] -> []
+  | h :: t -> (h * h) :: square_list t
+
+(* Takes a list of integers and returns a list of their squares *)
+let square_list2 items = List.map (fun x -> x * x) items
 
 (* Question 4 *)
-(* [TODO] *)
+(*
+Louis' first try:
+
+The definition given of square_list is in reversed order because he structured
+his definition in a similar way to the way reverse is defined above in
+question 2. That is, on every iteration he is squaring the left-most element
+of the remaining list, removing it, and cons-ing it to the answer list. Thus,
+the leftmost element in the original list will become the rightmost element
+in the resulting answer list; etc.
+
+Louis' second try:
+
+This code doesn't work because the :: cons operator expects a single element
+as the left operand, not a list, but the answer argument is a list.
+
+The fix for this is to change the line
+
+| h :: t -> iter t (answer :: (h * h))
+
+to
+
+| h :: t -> iter t (answer @ [h * h])
+
+This would not be considered space-efficient because using the append @
+operation requires a copy to be made of the left (answer) list.
+*)
 
 (* Question 5 *)
-(* [TODO] *)
+
+(* part 1 *)
+(* Counts the negative integers in a list and returns the count *)
+let count_negative_numbers l =
+    let rec iter lst count =
+      match lst with
+        | [] -> count
+        | h :: t when h < 0 -> iter t (count + 1)
+        | _ :: t -> iter t count
+    in iter l 0
+
+(* part 2 *)
+(* Creates a list containing the first n powers of 2 starting from 2^0 *)
+let power_of_two_list n =
+    let rec iter num answer =
+      match num with
+        | x when x <= 0 -> answer
+        | _ -> iter (num - 1) ((pow 2 (num - 1)) :: answer)
+    in iter n []
+
+(* part 3 *)
+(* Takes a list and returns a list of the prefix sum of the argument *)
+let prefix_sum l =
+    let rec iter l sum answer =
+      match l with
+        | [] -> (List.rev answer)
+        | h :: t -> iter t (sum + h) ((sum + h) :: answer)
+    in iter l 0 []
 
 (* Question 6 *)
-(* [TODO] *)
+(* Returns a deep reverse of the list argument *)
+(*
+let rec deep_reverse l =
+  match l with
+    | list of 'a -> (List.rev l)
+    | _ -> (List.map deep_reverse l)
+*)
 
 (* Question 7 *)
-(* [TODO] *)
+type 'a nested_list =
+  | Value of 'a
+  | List of 'a nested_list list
+
+(* Returns a deep reverse of the nested_list argument *)
+(*
+let rec deep_reverse_nested l =
+  match l with
+    | Value of 'a -> l
+    | List of nested_list -> (List.map deep_reverse_nested l)
+*)

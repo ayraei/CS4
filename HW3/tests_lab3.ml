@@ -79,7 +79,7 @@ let all_tests = "all" >:::
 (*** Problem A.6: no tests ***)
 
 (*** Problem A.7: no tests ***)
-(*
+
 (*** Problem B.1 ***)
   "last_sublist" >:: (fun c ->
     assert_raises (Invalid_argument "last_sublist: empty list") (fun () -> last_sublist []);
@@ -121,7 +121,7 @@ let all_tests = "all" >:::
   );
 
 (*** Problem B.6 ***)
-
+(*
   "deep_reverse" >:: (fun c ->
     assert_equal (deep_reverse []) [];
     assert_equal (deep_reverse [[1; 2]; [3; 4]]) [[4; 3]; [2; 1]];

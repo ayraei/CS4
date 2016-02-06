@@ -79,11 +79,13 @@ val seven : ('a -> 'a) -> 'a -> 'a
 val eight : ('a -> 'a) -> 'a -> 'a
 val nine : ('a -> 'a) -> 'a -> 'a
 val ten : ('a -> 'a) -> 'a -> 'a
+(*
 val add : ('a -> 'b -> 'c) -> ('a -> 'd -> 'b) -> 'a -> 'd -> 'c
 val church_to_integer : ((int -> int) -> int -> 'a) -> 'a
+*)
 
 (* B.1 *)
-(*
+
 val last_sublist : 'a list -> 'a list
 
 (* B.2 *)
@@ -107,12 +109,10 @@ val prefix_sum : int list -> int list
 
 (* B.6 *)
 
-(* B.7 *)
-
 val deep_reverse : 'a list list -> 'a list list
 
-(* B.8 *)
-
+(* B.7 *)
+(*
 type 'a nested_list = Value of 'a | List of 'a nested_list list
 val deep_reverse_nested : 'a nested_list -> 'a nested_list
 *)
