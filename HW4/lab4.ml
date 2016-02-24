@@ -61,7 +61,7 @@ let rec is_balanced m =
      (branch_length left_branch m) * (branch_weight2 left_branch m) =
      (branch_length right_branch m) * (branch_weight2 right_branch m)
     ) in
-  match (get_structure left_branch m, get_structure right_branch m) with
+  match (branch_structure left_branch m, branch_structure right_branch m) with
     | (`Weight _, `Weight _) -> pred
     | (`Weight _, `Structure _) -> pred && is_balanced right_branch m
     | (`Structure _, `Weight _) -> pred && is_balanced left_branch m
@@ -83,7 +83,7 @@ let make_structure' l m = Branch' (l, Structure' m)
 let left_branch' { left; _ } = left
 
 (* accessor that returns the right branch of a mobile *)
-let right_branch' { _; right } = right
+let right_branch' { l; right } = right
 
 (* return a branch's length *)
 let branch_length' (l, _) = l
@@ -91,12 +91,32 @@ let branch_length' (l, _) = l
 (* return a branch's structure *)
 let branch_structure' (_, c) = c
 
-(* TODO:
- * branch_weight'
- * total_weight'
- * is_balanced'
- * these should all be trivial to modify from part c
+(* branch_weight': returns the weight of a branch *)
+(* total_weight': returns the total weight of a mobile *)
+let rec branch_weight' b =
+  match branch_structure' b with
+    | Weight' w -> w
+    | Structure' s -> total_weight' s
+and total_weight' m =
+  (branch_weight' (left_branch' m)) + 
+  (branch_weight' (right_branch' m))
+
+(* returns true if a mobile is balanced. A mobile is balanced if the torque
+ * applied by its top-left branch is equal to that applied by its top-right
+ * branch, and all its submobiles are balanced.
  *)
+let rec is_balanced' m =
+  let pred =
+    (
+     (branch_length' left_branch' m) * (branch_weight' left_branch' m) =
+     (branch_length' right_branch' m) * (branch_weight' right_branch' m)
+    ) in
+  match (branch_structure' left_branch' m, branch_structure' right_branch' m) with
+    | (Weight' _, Weight' _) -> pred
+    | (Weight' _, Structure' _) -> pred && is_balanced' right_branch' m
+    | (Structure' _, Weight' _) -> pred && is_balanced' left_branch' m
+    | (Structure' _, Structure' _) -> pred && is_balanced' left_branch' m &&
+        is_balanced' right_branch' m
 
 (* Question 2 *)
 
@@ -108,8 +128,8 @@ and elem =
 (* makes a copy of a tree, squaring all the numbers in it. *)
 let rec square_tree = function
   | [] -> []
-  | Num of h :: t -> Num of (h * h) :: square_tree t
-  | Sub of h :: t -> square_tree h :: square_tree t
+  | Num h :: t -> Num (h * h) :: square_tree t
+  | Sub h :: t -> square_tree h :: square_tree t
 
 (* makes a copy of a tree, squaring all the numbers in it. *)
 let square_tree' t =
@@ -159,13 +179,13 @@ let rec accumulate op initial sequence =
     | h :: t -> op h (accumulate op initial t)
 
 let map p sequence =
-  accumulate (fun x r -> <??>) [] sequence
+  accumulate (fun x r -> (p x) :: r) [] sequence
 
 let append seq1 seq2 =
-  accumulate (fun x r -> x :: r) <??> <??>
+  accumulate (fun x r -> x :: r) seq2 seq1
 
 let length sequence =
-  accumulate <??> 0 sequence
+  accumulate (fun x r -> r + 1) 0 sequence
 
 (* Question 6 *)
 
@@ -173,7 +193,8 @@ let rec accumulate_n op init seqs =
   match seqs with
     | [] -> failwith "empty list"
     | [] :: _ -> []
-    | h :: t -> accumulate op init <??> :: accumulate_n op init <??>
+    | h :: t -> accumulate op init (List.map List.hd seqs) ::
+                  accumulate_n op init List.tl seqs
 
 (* Question 7 *)
 
@@ -182,14 +203,20 @@ let rec map2 f x y =
     | ([], []) -> []
     | ([], _) -> failwith "unequal lists"
     | (_, []) -> failwith "unequal lists"
+    | (_, _) -> (f (List.hd x) (List.hd y)) ::
+                  (map2 f (List.tl x) (List.tl y))
 
-let matrix_times_vector m v = map <??> m
+let dot_product v w = accumulate (+) 0 (map2 ( * ) v w)
+
+(* TODO *)
+let matrix_times_vector m v =
+  map (fun row -> accumulate_n (+) 0 (row :: v :: [])) m
 
 let transpose mat = accumulate_n <??> <??> mat
 
 let matrix_times_matrix m n =
   let cols = transpose n in
-    map <??> m
+    map (???) m
 
 (* PART B *)
 
@@ -263,17 +290,17 @@ let rec pow x y =
 
 (* Performs algebraic simplification on an expr expression. *)
 let rec simplify1 = function
-  | Add of (Int a, Int b) -> a + b
-  | Mul of (Int a, Int b) -> a * b
-  | Pow of (Int a, Int b) -> pow a b
-  | Add of (Int of 0, expr)
-  | Add of (expr, Int of 0) -> expr
-  | Mul of (Int of 0, expr)
-  | Mul of (expr, Int of 0) -> 0
-  | Mul of (Int of 1, expr)
-  | Mul of (expr, Int of 1) -> expr
-  | Pow of (_, 0) -> 1
-  | Add of (expr1, expr2) -> Add of (simplify1 expr1, simplify1 expr2)
+  | Add (Int a, Int b) -> Int (a + b)
+  | Mul (Int a, Int b) -> Int (a * b)
+  | Pow (Int a, Int b) -> Int (pow a b)
+  | Add (Int 0, expr)
+  | Add (expr, Int 0) -> expr
+  | Mul (Int 0, expr)
+  | Mul (expr, Int 0) -> Int 0
+  | Mul (Int 1, expr)
+  | Mul (expr, Int 1) -> expr
+  | Pow (_, 0) -> Int 1
+  | Add (expr1, expr2) -> Add (simplify1 expr1, simplify1 expr2)
 
 let rec simplify expr =
   let e = simplify1 expr in
@@ -284,9 +311,18 @@ let rec simplify expr =
 (* Question 2 *)
 
 (* Takes the derivative of a given expr expression. *)
-let deriv expr =
-    (* TODO *)
-    5
+let rec deriv e var =
+  match (e, var) with
+    | (Int _, _) -> Int 0
+    | (Var v1, Var v2) when v1 = v2 -> Int 1
+    | (Var v, Var _) -> Int 0
+    | (Add (e1, e2), _) -> Add (deriv e1 var, deriv e2 var)
+    | (Mul (e1, e2), _) ->
+        Add (
+          Mul (deriv e1 var, e2),
+          MUL (e1, deriv e2 var)
+        )
+    | (Pow (e, i), _) -> Mul (Int i, Mul (Pow (e, i - 1), deriv e var))
 
 let derivative expr var =
   let e = simplify expr in
