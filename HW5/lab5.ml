@@ -51,3 +51,70 @@ let bubble_sort arr =
         done;
       done;
     ()
+
+(* PART B *)
+
+(* Question a *)
+
+let meters_per_foot = 0.3048
+
+let get_meters len =
+  match len with
+    | `Meter m -> m
+    | `Foot f -> f *. meters_per_foot
+    | `Inch i -> i *. meters_per_foot /. 12.
+
+let length_add a b = `Meter (get_meters a +. get_meters b)
+
+(* Question b *)
+
+(* mass abstraction *)
+
+let grams_per_slug = 14593.903203
+
+let get_grams wt =
+  match wt with
+    | `Gram g -> g
+    | `Kilo k -> 1000. *. k
+    | `Slug s -> s *. grams_per_slug
+
+let mass_add a b = `Gram (get_grams a +. get_grams b)
+
+(* time abstraction *)
+
+let get_seconds tm =
+  match tm with
+    | `Second s -> s
+    | `Minute m -> 60. *. m
+    | `Hour h -> 3600. *. h
+    | `Day d -> 86400. *. d
+
+let time_add a b = `Second (get_seconds a +. get_seconds b)
+
+(* Question c *)
+
+(* takes two tagged data values and adds them if compatible; signals an
+ * error if not compatible.
+ *)
+let unit_add a b =
+  match (a, b) with
+    | (`Length a, `Length b) -> length_add a b
+    | (`Mass a, `Mass b) -> mass_add a b
+    | (`Time a, `Time b) -> time_add a b
+
+(* There is no combinatorial explosion when adding more unit classes, because
+ * we handily introduced the unit "class" tag-- `Length, `Mass, `Time.
+ * We can add a single case in the unit_add function for each class introduced,
+ * regardless of what combination of units was used and regardless of how many
+ * types of units are being defined.
+ *)
+
+(* PART C *)
+
+(* Question 1 *)
+
+(* TODO *)
+
+(* Question 2 *)
+
+(* TODO *)
