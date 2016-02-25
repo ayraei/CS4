@@ -14,13 +14,13 @@ let make_structure l m = Structure (l, m)
 (* part a *)
 
 (* accessor that returns the left branch of a mobile *)
-let left_branch (l, _) = l
+let left_branch (Mobile (l, _)) = l
 
 (* accessor that returns the right branch of a mobile *)
-let right_branch (_, r) = r
+let right_branch (Mobile (_, r)) = r
 
 (* return a branch's length *)
-let branch_length b = function
+let branch_length = function
   | Weight (l, _) -> l
   | Structure (l, _) -> l
 
@@ -41,6 +41,7 @@ and total_weight1 = function
 
 (* branch_weight2: returns the weight of a branch *)
 (* total_weight2: returns the total weight of a mobile *)
+(* implementation using accessors only *)
 let rec branch_weight2 b =
   match branch_structure b with
     | `Weight w -> w
@@ -58,15 +59,16 @@ and total_weight2 m =
 let rec is_balanced m =
   let pred =
     (
-     (branch_length left_branch m) * (branch_weight2 left_branch m) =
-     (branch_length right_branch m) * (branch_weight2 right_branch m)
+     ((branch_length (left_branch m)) * (branch_weight2 (left_branch m))) =
+     ((branch_length (right_branch m)) * (branch_weight2 (right_branch m)))
     ) in
-  match (branch_structure left_branch m, branch_structure right_branch m) with
+  match (branch_structure (left_branch m), branch_structure (right_branch m))
+  with
     | (`Weight _, `Weight _) -> pred
-    | (`Weight _, `Structure _) -> pred && is_balanced right_branch m
-    | (`Structure _, `Weight _) -> pred && is_balanced left_branch m
-    | (`Structure _, `Structure _) -> pred && is_balanced left_branch m &&
-        is_balanced right_branch m
+    | (`Weight _, `Structure s)
+    | (`Structure s, `Weight _) -> pred && is_balanced s
+    | (`Structure s1, `Structure s2) -> pred && is_balanced s1 &&
+        is_balanced s2
 
 (* part d *)
 type mobile'  = { left: branch'; right: branch' }
@@ -80,23 +82,26 @@ let make_weight' l w = Branch' (l, Weight' w)
 let make_structure' l m = Branch' (l, Structure' m)
 
 (* accessor that returns the left branch of a mobile *)
-let left_branch' { left; _ } = left
+let left_branch' { left; right } = left
 
 (* accessor that returns the right branch of a mobile *)
-let right_branch' { l; right } = right
+let right_branch' { left ; right } = right
 
 (* return a branch's length *)
-let branch_length' (l, _) = l
+let branch_length' (Branch' (l, _)) = l
 
 (* return a branch's structure *)
-let branch_structure' (_, c) = c
+let branch_structure' (Branch' (_, c)) =
+  match c with
+    | Weight' w -> `Weight w
+    | Structure' m -> `Structure m
 
 (* branch_weight': returns the weight of a branch *)
 (* total_weight': returns the total weight of a mobile *)
 let rec branch_weight' b =
   match branch_structure' b with
-    | Weight' w -> w
-    | Structure' s -> total_weight' s
+    | `Weight w -> w
+    | `Structure s -> total_weight' s
 and total_weight' m =
   (branch_weight' (left_branch' m)) + 
   (branch_weight' (right_branch' m))
@@ -108,15 +113,16 @@ and total_weight' m =
 let rec is_balanced' m =
   let pred =
     (
-     (branch_length' left_branch' m) * (branch_weight' left_branch' m) =
-     (branch_length' right_branch' m) * (branch_weight' right_branch' m)
+     ((branch_length' (left_branch' m)) * (branch_weight' (left_branch' m))) =
+     ((branch_length' (right_branch' m)) * (branch_weight' (right_branch' m)))
     ) in
-  match (branch_structure' left_branch' m, branch_structure' right_branch' m) with
-    | (Weight' _, Weight' _) -> pred
-    | (Weight' _, Structure' _) -> pred && is_balanced' right_branch' m
-    | (Structure' _, Weight' _) -> pred && is_balanced' left_branch' m
-    | (Structure' _, Structure' _) -> pred && is_balanced' left_branch' m &&
-        is_balanced' right_branch' m
+  match (branch_structure' (left_branch' m),
+    branch_structure' (right_branch' m)) with
+    | (`Weight _, `Weight _) -> pred
+    | (`Weight _, `Structure s)
+    | (`Structure s, `Weight _) -> pred && is_balanced' s
+    | (`Structure s1, `Structure s2) -> pred && is_balanced' s1 &&
+        is_balanced' s2
 
 (* Question 2 *)
 
@@ -127,29 +133,30 @@ and elem =
 
 (* makes a copy of a tree, squaring all the numbers in it. *)
 let rec square_tree = function
-  | [] -> []
-  | Num h :: t -> Num (h * h) :: square_tree t
-  | Sub h :: t -> square_tree h :: square_tree t
+  | Tree [] -> Tree []
+  | Tree ((Num h) :: t) ->
+      let (Tree t2) = square_tree (Tree t) in
+        Tree (Num (h * h) :: t2)
+  | Tree ((Sub h) :: t) ->
+      let (Tree t2) = square_tree (Tree t) in
+        Tree (Sub (square_tree h) :: t2)
 
 (* makes a copy of a tree, squaring all the numbers in it. *)
-let square_tree' t =
-  let rec helper e =
-    match e with
-      | [] -> []
-      | Num -> e * e
-      | Sub s -> List.map helper s
-  in List.map helper t
+(* Implementation using List.map *)
+let square_tree' (Tree t) =
+  let rec helper = function
+    | Num i -> Num (i * i)
+    | Sub (Tree s) -> Sub (Tree (List.map helper s))
+  in Tree (List.map helper t)
 
 (* Question 3 *)
 
 (* map a function to a tree *)
-let tree map func tr =
-  let rec helper e =
-    match e with
-      | [] -> []
-      | Num e -> func e
-      | Sub s -> List.map helper s
-  in List.map helper tr
+let tree_map func (Tree tr) =
+  let rec helper = function
+    | Num i -> Num (func i)
+    | Sub (Tree s) -> Sub (Tree (List.map helper s))
+  in Tree (List.map helper tr)
 
 let square_tree'' tree = tree_map (fun n -> n * n) tree
 
@@ -191,10 +198,10 @@ let length sequence =
 
 let rec accumulate_n op init seqs =
   match seqs with
-    | [] -> failwith "empty list"
+    | [] -> failwith "accumulate_n: empty list"
     | [] :: _ -> []
-    | h :: t -> accumulate op init (List.map List.hd seqs) ::
-                  accumulate_n op init List.tl seqs
+    | h :: t -> (accumulate op init (List.map List.hd seqs)) ::
+                  (accumulate_n op init (List.map List.tl seqs))
 
 (* Question 7 *)
 
@@ -208,15 +215,14 @@ let rec map2 f x y =
 
 let dot_product v w = accumulate (+) 0 (map2 ( * ) v w)
 
-(* TODO *)
 let matrix_times_vector m v =
-  map (fun row -> accumulate_n (+) 0 (row :: v :: [])) m
+  map (fun row -> accumulate (+) 0 (map2 ( * ) v row)) m
 
-let transpose mat = accumulate_n <??> <??> mat
+let transpose mat = accumulate_n (fun x y -> x :: y) [] mat
 
 let matrix_times_matrix m n =
   let cols = transpose n in
-    map (???) m
+    map (fun row -> matrix_times_vector cols row) m
 
 (* PART B *)
 
@@ -263,7 +269,7 @@ let rec insert_in_order new_result a_list cmp =
 let rec insertion_sort a_list cmp =
   match a_list with
     | [] -> []
-    | h :: t -> insert_in_order h (insertion_sort t) cmp
+    | h :: t -> insert_in_order h (insertion_sort t cmp) cmp
 
 (* This is an example of structural recursion, since we are not generating
  * any new subsets of the original data, but merely recursively calling
@@ -292,7 +298,7 @@ let rec pow x y =
 let rec simplify1 = function
   | Add (Int a, Int b) -> Int (a + b)
   | Mul (Int a, Int b) -> Int (a * b)
-  | Pow (Int a, Int b) -> Int (pow a b)
+  | Pow (Int a, b) -> Int (pow a b)
   | Add (Int 0, expr)
   | Add (expr, Int 0) -> expr
   | Mul (Int 0, expr)
@@ -300,7 +306,11 @@ let rec simplify1 = function
   | Mul (Int 1, expr)
   | Mul (expr, Int 1) -> expr
   | Pow (_, 0) -> Int 1
+  | Pow (expr, 1) -> expr
   | Add (expr1, expr2) -> Add (simplify1 expr1, simplify1 expr2)
+  | Mul (expr1, expr2) -> Mul (simplify1 expr1, simplify1 expr2)
+  | Pow (expr, i) -> Pow (simplify1 expr, i)
+  | expr -> expr
 
 let rec simplify expr =
   let e = simplify1 expr in
@@ -311,18 +321,18 @@ let rec simplify expr =
 (* Question 2 *)
 
 (* Takes the derivative of a given expr expression. *)
-let rec deriv e var =
-  match (e, var) with
+let rec deriv e v =
+  match (e, v) with
     | (Int _, _) -> Int 0
-    | (Var v1, Var v2) when v1 = v2 -> Int 1
-    | (Var v, Var _) -> Int 0
-    | (Add (e1, e2), _) -> Add (deriv e1 var, deriv e2 var)
+    | (Var v1, v2) when v1 = v2 -> Int 1
+    | (Var v, _) -> Int 0
+    | (Add (e1, e2), _) -> Add (deriv e1 v, deriv e2 v)
     | (Mul (e1, e2), _) ->
         Add (
-          Mul (deriv e1 var, e2),
-          MUL (e1, deriv e2 var)
+          Mul (e1, deriv e2 v),
+          Mul (deriv e1 v, e2)
         )
-    | (Pow (e, i), _) -> Mul (Int i, Mul (Pow (e, i - 1), deriv e var))
+    | (Pow (e, i), _) -> Mul (Int i, Mul (Pow (e, i - 1), deriv e v))
 
 let derivative expr var =
   let e = simplify expr in
