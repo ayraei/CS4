@@ -113,40 +113,23 @@ let unit_add a b =
 (* PART C *)
 
 (* Question 1 *)
-(*
- * I had originally written the code below, but it's causing a compile error
- * somewhere in the add method? Or is it from the way I'm trying to use self
- * in add/compatible?
- * The uncommented code below works but does not throw an error on
- * incompatible types.
 
+(* Creates a gram object. *)
 let rec make_gram g =
-  let slugs_in_gram = 1. /. 14593.903203
+  let slugs_in_gram = 1. /. 14593.903203 in
+  let check_compatibility other = other#unit_type = `Gram ||
+                                  other#unit_type = `Slug
   in
     object (self)
       method get_grams = g
       method get_slugs = g *. slugs_in_gram
       method unit_type = `Gram
-      method compatible other = other#unit_type = `Gram ||
-                                other#unit_type = `Slug
+      method compatible other = check_compatibility other
       method add other =
-        if not (self#compatible other)
+        if not (check_compatibility other)
         then failwith "make_gram: incompatible object"
         else
           make_gram (g +. other#get_grams)
-    end
-*)
-let rec make_gram g =
-  let slugs_in_gram = 1. /. 14593.903203
-  in
-    object (self)
-      method get_grams = g
-      method get_slugs = g *. slugs_in_gram
-      method unit_type = `Gram
-      method compatible other = other#unit_type = `Gram ||
-                                other#unit_type = `Slug
-      method add other =
-        make_gram (g +. other#get_grams)
     end
 
 (* Question 2 *)
