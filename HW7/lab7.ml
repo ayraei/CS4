@@ -7,38 +7,41 @@ type light_state = On | Off
 let make_light () =
   let curr_state = ref Off in
   let neighbors = ref [] in
-  let opposite lt = if lt#state = On then Off else On in
+  let rec update_helper = function
+    | h :: t ->
+        begin
+          h#toggle;
+          update_helper t
+        end
+    | [] -> ()
+  in
   object (self)
     method state = !curr_state
     method set_state st = curr_state := st
-    method toggle = curr_state := (opposite self)
+    method toggle = curr_state := (if self#state = On then Off else On)
     method add_neighbor ob = neighbors := (ob :: !neighbors)
     method update =
       begin
         self#toggle;
-        List.map (fun x -> x#toggle) !neighbors
+        update_helper !neighbors
       end
   end
 
 (* Question 2 *)
 (* The game board *)
 
+(* Checks if the row/col coordinage provided is a valid location. *)
+let valid_location row col =
+  row >= 0 && col >= 0 && row <= 4 && col <= 4
+
 (* Creates a game board object that holds an array of lights. *)
 let make_board () =
-  let ml = make_light () in
   let board =
-    [|
-      [| ml; ml; ml; ml; ml |];
-      [| ml; ml; ml; ml; ml |];
-      [| ml; ml; ml; ml; ml |];
-      [| ml; ml; ml; ml; ml |];
-      [| ml; ml; ml; ml; ml |]
-    |]
+    Array.map (fun arr -> Array.map make_light arr) (Array.make_matrix 5 5 ())
   in
   fun row col ->
-    if not (row >= 0 && col >= 0 && row <= 4 && col <= 4) then
-    failwith "board: indices passed in are not within board bounds!"
-    else board.(row).(col)
+    if (valid_location row col) then board.(row).(col)
+    else failwith "make_board: invalid coordinate given!"
 
 (* Question 3 *)
 (* The game object *)
@@ -52,7 +55,19 @@ let make_game () =
   (*** Helper functions. ***)
 
   (* Connect all orthogonally adjacent lights to each other. *)
-  let connect board = ()
+  let connect board =
+    for i = 0 to 4 do
+      for j = 0 to 4 do
+        (* left *)
+        if (j - 1) >= 0 then (board i j)#add_neighbor (board i (j - 1));
+        (* right *)
+        if (j + 1) <= 4 then (board i j)#add_neighbor (board i (j + 1));
+        (* up *)
+        if (i - 1) >= 0 then (board i j)#add_neighbor (board (i - 1) j);
+        (* down *)
+        if (i + 1) <= 4 then (board i j)#add_neighbor (board (i + 1) j);
+      done;
+    done;
   in
 
   (* Initialize the board given an array of arrays of on/off values 
@@ -93,8 +108,12 @@ let make_game () =
       connect board;
       object (self)
         method init values = initialize_board board values
-        method peek row col = board row col
-        method play row col = (board row col)#update
+        method peek row col =
+          if (valid_location row col) then board row col
+          else failwith "peek: invalid coordinate!"
+        method play row col = 
+          if (valid_location row col) then (board row col)#update
+          else failwith "play: invalid coordinate!"
         method play_many moves =
           let t = ref moves in
           for i = 0 to (List.length moves) - 1 do
@@ -103,15 +122,62 @@ let make_game () =
             t := List.tl !t
           done;
         method is_clear =
-          let t = ref true in
-          for i = 0 to 4 do
-            for j = 0 to 4 do
-              if (board i j)#state = On then
-              t := false
-              else ()
+          try
+            for i = 0 to 4 do
+              for j = 0 to 4 do
+                if (board i j)#state = On then raise Exit
+              done
             done;
-          done;
-          !t
+            true
+          with Exit -> false
         method print = print_board board
       end
+    end
+
+(*** Play the game interactively. ***)
+
+let play_game init =
+  let is_digit c = c >= '0' && c <= '9' in
+  let ok_coords_line line =
+    String.length line = 3 
+      && is_digit line.[0]
+      && line.[1] = ' '
+      && is_digit line.[2]
+  in
+  let get_input () =
+    let line = read_line () in
+      match line with
+        | "quit" -> Quit
+        | _ when ok_coords_line line ->
+          let row = int_of_string (Printf.sprintf "%c" line.[0]) in
+          let col = int_of_string (Printf.sprintf "%c" line.[2]) in
+            if valid_location row col
+              then Coords (row, col)
+              else failwith "invalid coordinates"
+        | _ -> failwith "invalid input line"
+  in
+  let rec run game =
+    try
+      begin
+        Printf.printf "Enter move (row col): ";
+        match get_input () with
+          | Quit -> ()
+          | Coords (row, col) -> 
+              begin
+                game#play row col;
+                newline ();
+                game#print;
+                if game#is_clear
+                  then Printf.printf "You win!\n\n"
+                  else run game
+              end
+      end
+    with Failure msg -> (Printf.printf "ERROR: %s\n\n" msg; run game)
+  in
+  let game = make_game () in
+    begin
+      game#init init;
+      newline ();
+      game#print;
+      run game
     end
