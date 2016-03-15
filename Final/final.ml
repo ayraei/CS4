@@ -1,5 +1,5 @@
-(* Student name:    *)
-(* CMS cluster login name:   *)
+(* Student name: Joanne Li *)
+(* CMS cluster login name: jli9 *)
 
 (* final.ml: 2016 CS 4 final exam. *)
 
@@ -102,23 +102,59 @@ let make_piece _name _len _dir =
       method len   = _len
       method dir   = _dir
       method loc   = !_loc
-      method locs  = (* TODO *)
+      method locs  =
+        match (self#len, self#dir, self#loc) with
+          | (P2, H, (a, b)) -> [(a, b); (a, b + 1)]
+          | (P3, H, (a, b)) -> [(a, b); (a, b + 1), (a, b + 2)]
+          | (P2, V, (a, b)) -> [(a, b); (a + 1, b)]
+          | (P3, V, (a, b)) -> [(a, b); (a + 1, b), (a + 2, b)]
       method print = print_piece self#locs
 
       method if_place loc =
-        (* TODO *)
+        match (self#len, self#dir, loc) with
+          | (_, _, (a, b)) when valid_loc (a, b) ->
+              raise (Invalid_argument,
+              sprintf "piece: if_place: invalid location: (%d, %d)" a b)
+          | (P2, H, (a, b)) -> if (b + 1) >= board_size then None else
+              Some [(a, b); (a, b + 1)]
+          | (P2, V, (a, b)) -> if (a + 1) >= board_size then None else
+              Some [(a, b); (a + 1, b)]
+          | (P3, H, (a, b)) -> if (b + 2) >= board_size then None else
+              Some [(a, b); (a, b + 1); (a, b + 2)]
+          | (P3, V, (a, b)) -> if (a + 2) >= board_size then None else
+              Some [(a, b); (a + 1, b); (a + 2, b)]
 
       method place new_loc =
-        (* TODO *)
+        _loc := new_loc
 
       method if_move n =
-        (* TODO *)
+        let (a, b) = !_loc in
+        let (Some fin) = if self#dir = H then self#if_place (a, b + n)
+          else self#if_place (a + n, b)
+        in
+        let result = ref None in
+          if not (fin = None) then
+            result :=
+              Some (difference self#locs fin, (* TODO *), (* TODO *))
 
       method move n =
-        (* TODO *)
+        match (self#dir, self#loc) with
+          | (H, (a, b)) -> _loc := (a, b + n)
+          | (V, (a, b)) -> _loc := (a + n, b)
 
-      method possible_moves = 
-        (* TODO *)
+      method possible_moves =
+        let (a, b) = self#loc in
+        let result = ref [] in
+        let l = if self#len = P2 then 1 else 2 in
+        let mov = if self#dir = H then
+          ref (board_size - b + l)
+          else ref (board_size - a + l)
+        in
+          while !mov < (board_size - l - 1) do
+            if !mov = 0 then ()
+            else result := (!mov :: !result)
+          done;
+          !result
     end
 
 (* ---------------------------------------------------------
@@ -138,12 +174,26 @@ let make_board () =
    * for debugging purposes.
    *)
   let board_to_list () =
-    (* TODO *)
+    let result = ref [] in
+    let inner = ref [] in
+      for i = (board_size - 1) downto 0 do
+        inner := [];
+        for j = (board_size - 1) downto 0 do
+          if Hashtbl.mem pieces_at_location (i, j) then
+          inner := ((Hashtbl.find (i, j)) :: !inner)
+          else inner := ("_" :: !inner)
+        done;
+        result := (!inner :: !result)
+      done;
+      !result
   in
 
   (* Clear the hash tables. *)
   let clear_board () =
-    (* TODO *)
+    begin
+      Hashtbl.clear pieces;
+      Hashtbl.clear piece_at_location;
+    end
   in
 
   (* Print a representation of the board. *)
@@ -179,25 +229,30 @@ let make_board () =
    * (2, 4) and (2, 5).
    *)
   let board_is_won_game () =
-    (* TODO *)
+    if (Hashtbl.mem pieces "@") && (Hashtbl.find pieces "@")#loc = (2, 4)
+    then true else false
   in
 
   (* Return true if a location is vacant. *)
   let is_vacant loc =
-     (* TODO *)
+     if (Hashtbl.mem piece_at_location loc) then false else true
   in
 
   (* Vacate a location on the board by adjusting the hash table contents. *)
-  let vacate loc = 
-     (* TODO *)
+  let vacate loc =
+    let piece = ref (Hashtbl.find loc) in
+    begin
+      Hashtbl.remove piece_at_location loc;
+      Hashtbl.remove pieces !piece
+    end
   in
     
    (*
     * Add a binding between a location and a piece by adjusting the 
     * hash table contents.
     *)
-  let occupy name loc = 
-    (* TODO *)
+  let occupy name loc =
+    Hashtbl.replace piece_at_location loc name
   in
     
   (*
@@ -205,7 +260,12 @@ let make_board () =
    * on the board.
    *)
   let board_place_piece name len dir loc =
-    (* TODO *)
+    let piece = (make_piece name len dir)
+    begin
+      piece#place loc;
+      Hashtbl.replace pieces name piece
+      Hashtbl.replace piece_at_location loc name
+    end
   in
 
   (*
@@ -213,7 +273,7 @@ let make_board () =
    * by the specified distance.
    *)
   let board_move_piece name distance =
-    (* TODO *)
+    (Hashtbl.find pieces name)#move distance
   in
 
   (*
@@ -221,7 +281,7 @@ let make_board () =
    * (represented as the piece name).  Assumes the piece is on the board.
    *)
   let get_all_moves name =
-    (* TODO *)
+    (Hashtbl.find pieces name)#possible_moves
   in
 
   (*
@@ -324,18 +384,25 @@ let make_board () =
     method piece_at_location_table = Hashtbl.copy piece_at_location
 
     (* For testing/debugging only. *)
-    method to_list = (* TODO *)
+    method to_list = board_to_list ()
 
-    method clear = 
-      (* TODO *)
+    method clear = clear_board ()
 
     method print = print_board ()
 
-    method won_game = 
-      (* TODO *)
+    method won_game = board_is_won_game ()
 
     method place_piece name len dir loc = 
-      (* TODO *)
+      let (a, b) = loc in
+      match () with
+        | _ when not (valid_piece_name name)
+        | _ when not (valid_loc loc) ->
+            raise (Invalid_argument, "board: place_piece: bad inputs")
+        | _ when ((make_piece name len dir)#if_place loc) = None ->
+            failwith
+              sprintf "board: cannot place piece %s at location (%d, %d)"
+                name a b
+        | _ -> board_place_piece name len dir loc
 
     method move_piece name distance = 
       (* TODO *)
@@ -343,7 +410,6 @@ let make_board () =
     method get_all_piece_moves = 
       (* TODO *)
      
-    method initialize_from_list lst = 
-      (* TODO *)
+    method initialize_from_list lst = board_initialize_from_list lst
   end
 
