@@ -119,7 +119,7 @@ let all_tests = "all" >:::
      assert_equal_list_options ~msg: "piece test 11d"
        (p4#if_place (5, 2)) None;
   );
-(*
+
   "Board tests" >:: (fun c ->
      assert_equal ~msg: "board test 1a" (pieces b) (Hashtbl.create 25);
      assert_equal ~msg: "board test 1b" (piece_at_loc b) (Hashtbl.create 36);
@@ -251,7 +251,7 @@ let all_tests = "all" >:::
       end
 
   );
-*)
+
 ]
 
 let _ = run_test_tt_main all_tests

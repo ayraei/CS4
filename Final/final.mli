@@ -18,7 +18,7 @@ type piece =
   >
 
 val make_piece : string -> len -> dir -> piece
-(*
+
 val make_board :
   unit ->
   < 
@@ -36,4 +36,3 @@ val make_board :
 
     initialize_from_list : string list list -> unit
   >
-*)
