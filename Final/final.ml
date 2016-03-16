@@ -52,7 +52,19 @@ let make_piece _name _len _dir =
    * If any such location location would be off the board, return None.
    *)
   let get_locs_in_line loc len dir = 
-    (* TODO *)
+    let (a, b) = loc in
+    let _max = if (dir = H) then (b + len) else (a + len) in
+    let _min = if (dir = H) then b else a in
+    let (max, min) = if _max > _min then (_max, _min) else (_min, _max) in
+    let result = ref [] in
+      if max >= board_size || min < 0 then None else
+      begin
+        for i = max downto min do
+          if (dir = H) then (result := ((a, i) :: !result))
+          else (result := ((i, b) :: !result))
+        done;
+        Some !result
+      end
   in
 
   (*
@@ -61,14 +73,22 @@ let make_piece _name _len _dir =
    * can't be moved because they would go off the edge of the board.
    *)
   let move_locs locs dir n =
-    (* TODO *)
+    let (a, b) = (List.hd locs) in
+    let len = List.length locs in
+    let res = if (dir = H) then (b + n) else (a + n) in
+    let res2 = if (dir = H) then (b + len - 1 + n) else (a + len - 1 + n) in
+      if res >= board_size || res < 0 
+         || res2 >= board_size || res2 < 0 then None else
+      Some (List.map
+            (fun (a, b) -> if (dir = H) then (a, b + n) else (a + n, b))
+            locs)
   in
 
   (*
    * Given a (non-empty) list of locations, a direction and a distance, 
    *   return a tuple (option) of:
    * (a) the newly-vacated locations when you move the locations n places over 
-   *     in the  given direction;
+   *     in the given direction;
    * (b) the vacant locations passed over by the piece during the move
    * (c) the newly-occupied locations when you move the locations n places over 
    *     in the given direction
@@ -76,7 +96,17 @@ let make_piece _name _len _dir =
    *     (because it would go off an end of the board).
    *)
   let if_move_locs locs dir n =
-    (* TODO *)
+    let (a, b) = (List.hd locs) in
+    let get = function
+      | None -> []
+      | Some x -> x
+    in
+    let line_locs = get (get_locs_in_line (a, b) n dir) in
+    let moved_locs = get (move_locs locs dir n) in
+      if (line_locs = []) || (moved_locs = []) then None else
+      Some (difference locs moved_locs,
+            difference (difference line_locs locs) moved_locs,
+            difference moved_locs locs)
   in
 
   (* 
@@ -88,7 +118,12 @@ let make_piece _name _len _dir =
    * of the piece.
    *)
   let get_possible_moves locs dir =
-    (* TODO *)
+    let result = ref [] in
+      for i = (0 - board_size + 1) to (board_size - 1) do
+        if (if_move_locs locs dir i) = None || i = 0 then () else
+        result := (i :: !result)
+      done;
+      !result
   in
      
   (* 
@@ -105,16 +140,16 @@ let make_piece _name _len _dir =
       method locs  =
         match (self#len, self#dir, self#loc) with
           | (P2, H, (a, b)) -> [(a, b); (a, b + 1)]
-          | (P3, H, (a, b)) -> [(a, b); (a, b + 1), (a, b + 2)]
+          | (P3, H, (a, b)) -> [(a, b); (a, b + 1); (a, b + 2)]
           | (P2, V, (a, b)) -> [(a, b); (a + 1, b)]
-          | (P3, V, (a, b)) -> [(a, b); (a + 1, b), (a + 2, b)]
+          | (P3, V, (a, b)) -> [(a, b); (a + 1, b); (a + 2, b)]
       method print = print_piece self#locs
 
       method if_place loc =
         match (self#len, self#dir, loc) with
-          | (_, _, (a, b)) when valid_loc (a, b) ->
-              raise (Invalid_argument,
-              sprintf "piece: if_place: invalid location: (%d, %d)" a b)
+          | (_, _, (a, b)) when not (valid_loc (a, b)) ->
+              invalid_arg
+                (sprintf "piece: if_place: invalid location: (%d, %d)" a b)
           | (P2, H, (a, b)) -> if (b + 1) >= board_size then None else
               Some [(a, b); (a, b + 1)]
           | (P2, V, (a, b)) -> if (a + 1) >= board_size then None else
@@ -124,43 +159,23 @@ let make_piece _name _len _dir =
           | (P3, V, (a, b)) -> if (a + 2) >= board_size then None else
               Some [(a, b); (a + 1, b); (a + 2, b)]
 
-      method place new_loc =
-        _loc := new_loc
+      method place new_loc = (_loc := new_loc)
 
-      method if_move n =
-        let (a, b) = !_loc in
-        let (Some fin) = if self#dir = H then self#if_place (a, b + n)
-          else self#if_place (a + n, b)
-        in
-        let result = ref None in
-          if not (fin = None) then
-            result :=
-              Some (difference self#locs fin, (* TODO *), (* TODO *))
+      method if_move n = if_move_locs self#locs self#dir n
 
       method move n =
         match (self#dir, self#loc) with
           | (H, (a, b)) -> _loc := (a, b + n)
           | (V, (a, b)) -> _loc := (a + n, b)
 
-      method possible_moves =
-        let (a, b) = self#loc in
-        let result = ref [] in
-        let l = if self#len = P2 then 1 else 2 in
-        let mov = if self#dir = H then
-          ref (board_size - b + l)
-          else ref (board_size - a + l)
-        in
-          while !mov < (board_size - l - 1) do
-            if !mov = 0 then ()
-            else result := (!mov :: !result)
-          done;
-          !result
+      method possible_moves = get_possible_moves self#locs self#dir
     end
+
 
 (* ---------------------------------------------------------
  * Board object.
  * --------------------------------------------------------- *)
-
+(*
 let make_board () =
   let pieces = Hashtbl.create 25 in              (* piece name -> piece *)
   let piece_at_location = Hashtbl.create 36 in   (* location -> piece name *)
@@ -412,4 +427,4 @@ let make_board () =
      
     method initialize_from_list lst = board_initialize_from_list lst
   end
-
+*)

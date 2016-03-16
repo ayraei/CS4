@@ -39,12 +39,12 @@ let p1 = make_piece "a" P2 H
 let p2 = make_piece "b" P3 H
 let p3 = make_piece "c" P2 V
 let p4 = make_piece "d" P3 V
-
+(*
 let b = make_board ()
 let pieces board = board#pieces_table
 let piece_at_loc board = board#piece_at_location_table
 let make_board_list = make_board_list_from_string
-
+*)
 let all_tests = "all" >:::
 [ 
   "Piece tests" >:: (fun c ->
@@ -119,7 +119,7 @@ let all_tests = "all" >:::
      assert_equal_list_options ~msg: "piece test 11d"
        (p4#if_place (5, 2)) None;
   );
-
+(*
   "Board tests" >:: (fun c ->
      assert_equal ~msg: "board test 1a" (pieces b) (Hashtbl.create 25);
      assert_equal ~msg: "board test 1b" (piece_at_loc b) (Hashtbl.create 36);
@@ -251,7 +251,7 @@ let all_tests = "all" >:::
       end
 
   );
-
+*)
 ]
 
 let _ = run_test_tt_main all_tests
